@@ -10,6 +10,7 @@ This document tracks the real decisions, trade-offs, and bugs encountered while 
 4. [Why hash the ciphertext for idempotency instead of comparing it directly?](#q4-idempotency-hash)
 5. [Why use an explicit OAEPParameterSpec instead of relying on the transformation string?](#q5-oaep-param-spec)
 6. [Why ByteBuffer for building the wire format instead of manual byte array concatenation?](#q6-bytebuffer)
+7. [Why generate the keypair in the constructor, and what's the variable shadowing bug to watch for?](#q7-keypair-shadowing)
 
 <!-- Add new question links here as sections are added -->
 
@@ -63,6 +64,16 @@ The wire format packs together four pieces of data of different, and in one case
 
 ---
 
+### Q7: Why generate the keypair in the constructor, and what's the variable shadowing bug to watch for? {#q7-keypair-shadowing}
+
+`ServerKeyHolder` generates a fresh RSA-2048 keypair once, at startup, and holds it for the lifetime of the server. Doing this in the constructor (rather than a separate `@PostConstruct` method) works fine here since the class has no injected dependencies that need to be ready first — either approach is functionally equivalent for a no-dependency bean like this.
+
+The real bug worth documenting came up while writing the assignment: writing `KeyPair keyPair = keyPairGenerator.generateKeyPair();` inside the constructor looks correct but is a classic Java shadowing mistake. Because the left side declares a type (`KeyPair keyPair`), Java creates a brand new local variable scoped only to the constructor, rather than assigning to the existing `keyPair` field — the field silently stays `null`, and any getter that reads it later throws a `NullPointerException` at runtime, not a compile error. The fix is to drop the type from the left side (`this.keyPair = keyPairGenerator.generateKeyPair();` or just `keyPair = ...`), which makes it a plain assignment to the field instead of a new declaration. This is a good general pattern to watch for: any time a local variable name matches a field name, check whether the intent was assignment to the field or a genuinely new local variable.
+
+`getPublicKeyBase64()` exists because a `PublicKey` object can't cross a network or process boundary as-is — simulated sender devices need the server's public key to encrypt payments, so it needs to be serialized (Base64-encoded here) to actually be transmitted or exposed via an endpoint.
+
+---
+
 ## Grouped Index
 
 Same entries as above, organized by component/topic for quick reference.
@@ -74,5 +85,6 @@ Same entries as above, organized by component/topic for quick reference.
 - [Q4: Why hash the ciphertext for idempotency?](#q4-idempotency-hash)
 - [Q5: Why an explicit OAEPParameterSpec?](#q5-oaep-param-spec)
 - [Q6: Why ByteBuffer for the wire format?](#q6-bytebuffer)
+- [Q7: Why generate the keypair in the constructor, and the shadowing bug?](#q7-keypair-shadowing)
 
 <!-- Add new categories here as sections are added: Mesh Simulation, Idempotency, Settlement/Ledger, etc. -->
