@@ -10,7 +10,7 @@ public class ServerKeyHolder {
 
     private static final int RSA_KEY_BITS = 2048;
 
-    private KeyPair keyPair;
+    private final KeyPair keyPair;
 
     public ServerKeyHolder() throws NoSuchAlgorithmException {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");

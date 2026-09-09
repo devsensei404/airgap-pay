@@ -1,8 +1,11 @@
 package com.devsensei404.airgappay.encrypt;
 
-import com.devsensei404.airgappay.dto.PaymentInstructions;
-import org.springframework.stereotype.Service;
-import tools.jackson.databind.ObjectMapper;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.spec.MGF1ParameterSpec;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -12,12 +15,11 @@ import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
 
-import java.nio.ByteBuffer;
-import java.security.MessageDigest;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SecureRandom;
-import java.security.spec.MGF1ParameterSpec;
+import org.springframework.stereotype.Service;
+
+import com.devsensei404.airgappay.dto.PaymentInstructions;
+
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 public class HybridEncryptService {
@@ -71,10 +73,7 @@ public class HybridEncryptService {
                 aesKey.getEncoded()
         );
 
-        int totalLength =
-                encryptedAesKey.length
-                        + iv.length
-                        + aesCiphertext.length;
+        int totalLength = encryptedAesKey.length + iv.length + aesCiphertext.length;
 
         // KEY_LENGTH_PREFIX_BYTES for the length prefix that records how long the
         // RSA-encrypted AES key is, so decrypt() doesn't have to hardcode a key-size assumption.
@@ -89,8 +88,7 @@ public class HybridEncryptService {
     }
 
 
-    public PaymentInstructions decrypt(byte[] wireFormat,
-                          PrivateKey serverPrivateKey) throws Exception {
+    public PaymentInstructions decrypt(byte[] wireFormat, PrivateKey serverPrivateKey) throws Exception {
 
         // Step B — unpack. Wrap first, THEN read from it.
         ByteBuffer buf = ByteBuffer.wrap(wireFormat);
